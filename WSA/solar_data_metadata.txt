@@ -1,0 +1,6 @@
+n_lon 360
+n_lat 180
+phi_min 0.000000
+phi_max 6.283185
+theta_min 0.000000
+theta_max 3.141593
