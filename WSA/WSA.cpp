@@ -70,8 +70,21 @@ int main() {
         std::cout << "B = (" << Br << ", " << Btheta << ", " << Bphi << ")" << std::endl;
         cout << SphericalHarmonics::reconstructBr(theta, phi, B_lm) << endl;*/
 
-        generateMagneticFieldLines(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "magnetic_lines.txt");
-        generate_Coronal_hole(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "coronal_phole.txt");
+        //generateMagneticFieldLines(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "magnetic_lines.txt");
+        
+        // НОВАЯ ОПТИМИЗИРОВАННАЯ ВЕРСИЯ с предвычисленной сеткой
+        std::cout << "\nCreating optimized magnetic field grid..." << std::endl;
+        
+        // Параметры сетки: разрешение по углам как в исходных данных, настраиваемое разрешение по радиусу
+        int nr_grid = 50;  // Количество слоев по радиусу (настраиваемый параметр)
+        int ntheta_grid = data.THETA_2d[0].size();  // Берем разрешение по theta из исходных данных
+        int nphi_grid = data.PHI_2d.size();         // Берем разрешение по phi из исходных данных
+        
+        MagneticFieldGrid grid(1.0, 2.5, nr_grid, ntheta_grid, nphi_grid);
+        grid.initializeGrid(B_lm, l_max);
+        
+        std::cout << "Grid created successfully! Starting optimized coronal hole calculation..." << std::endl;
+        generate_Coronal_hole_optimized(data.PHI_2d, data.THETA_2d, data.Br_2d, grid, "coronal_phole_optimized.txt");
 
         if (false)
         {

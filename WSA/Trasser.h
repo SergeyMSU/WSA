@@ -2,6 +2,9 @@
 
 #include"Header.h"
 
+// Форвардная декларация
+class MagneticFieldGrid;
+
 void sphericalToCartesian(double r, double theta, double phi, double& x, double& y, double& z);
 void cartesianToSpherical(double x, double y, double z, double& r, double& theta, double& phi);
 
@@ -9,6 +12,12 @@ std::vector<std::vector<double>> traceFieldLine(
     double r_start, double theta_start, double phi_start,
     const std::vector<std::vector<Complex>>& B_lm,
     double R0, double Rss, int l_max,
+    double dr, int max_steps);
+
+// Новая функция трассировки с использованием предвычисленной сетки
+std::vector<std::vector<double>> traceFieldLineWithGrid(
+    double r_start, double theta_start, double phi_start,
+    const MagneticFieldGrid& grid,
     double dr, int max_steps);
 
 void generateMagneticFieldLines(
@@ -25,6 +34,14 @@ void generate_Coronal_hole(
     const std::vector<std::vector<double>>& THETA,
     const std::vector<std::vector<double>>& Br_2d,
     double R0, double Rss, int l_max,
+    const std::string& filename);
+
+// Новая оптимизированная функция для корональных дыр с сеткой
+void generate_Coronal_hole_optimized(
+    const std::vector<std::vector<double>>& PHI,
+    const std::vector<std::vector<double>>& THETA,
+    const std::vector<std::vector<double>>& Br_2d,
+    const MagneticFieldGrid& grid,
     const std::string& filename);
 
 void writeTecplotFile(const std::string& filename,

@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -c -O3 -I/usr/include/eigen3 -fopenmp -lgmp -lmpfr -std=c++17 -lgsl -lgslcblas -lm
 LDFLAGS = -fopenmp -lgmp -lmpfr -std=c++17 -lgsl -lgslcblas -lm
-SRC = WSA.cpp Trasser.cpp PFSS_Data.cpp
+SRC = WSA.cpp Trasser.cpp PFSS_Data.cpp MagneticFieldGrid.cpp SphericalHarmonics.cpp
 OBJ = $(SRC:.cpp=.o)
 EXEC = hello
 

@@ -16,8 +16,7 @@ void cartesianToSpherical(double x, double y, double z, double& r, double& theta
     if (phi < 0) phi += 2 * M_PI;
 }
 
-
-// Функция трассировки одной магнитной линии
+// Функция трассировки одной магнитной линии (старая версия)
 std::vector<std::vector<double>> traceFieldLine(
     double r_start, double theta_start, double phi_start,
     const std::vector<std::vector<Complex>>& B_lm,
@@ -89,6 +88,69 @@ std::vector<std::vector<double>> traceFieldLine(
     return line;
 }
 
+// Новая оптимизированная функция трассировки с использованием предвычисленной сетки
+std::vector<std::vector<double>> traceFieldLineWithGrid(
+    double r_start, double theta_start, double phi_start,
+    const MagneticFieldGrid& grid,
+    double dr, int max_steps) 
+{
+    std::vector<std::vector<double>> line;
+    double r = r_start;
+    double theta = theta_start;
+    double phi = phi_start;
+
+    // Добавляем начальную точку
+    double x, y, z;
+    sphericalToCartesian(r, theta, phi, x, y, z);
+    
+    // Получаем магнитное поле из сетки
+    auto field = grid.interpolateField(r, theta, phi);
+    double Br = field.Br;
+    double Btheta = field.Btheta;
+    double Bphi = field.Bphi;
+    
+    double polar = (Br > 0) ? 1.0 : -1.0;
+    line.push_back({ x, y, z, polar });
+
+    for (int step = 0; step < max_steps; step++) 
+    {
+        // Получаем магнитное поле из интерполированной сетки
+        auto field = grid.interpolateField(r, theta, phi);
+        Br = field.Br;
+        Btheta = field.Btheta;
+        Bphi = field.Bphi;
+
+        // Преобразуем компоненты поля в декартовы координаты
+        double Bx = Br * sin(theta) * cos(phi) + Btheta * cos(theta) * cos(phi) - Bphi * sin(phi);
+        double By = Br * sin(theta) * sin(phi) + Btheta * cos(theta) * sin(phi) + Bphi * cos(phi);
+        double Bz = Br * cos(theta) - Btheta * sin(theta);
+
+        // Нормируем вектор поля
+        double B_mag = sqrt(Bx * Bx + By * By + Bz * Bz);
+        if (B_mag < 1e-12) break;
+
+        Bx /= B_mag;
+        By /= B_mag;
+        Bz /= B_mag;
+
+        // Делаем шаг вдоль поля
+        double ds = dr * polar; // Шаг по длине дуги
+        x += ds * Bx;
+        y += ds * By;
+        z += ds * Bz;
+
+        // Преобразуем обратно в сферические координаты
+        cartesianToSpherical(x, y, z, r, theta, phi);
+
+        // Проверяем условия остановки
+        if (r > grid.getRss() || r < grid.getR0()) break;
+
+        double k = (Br > 0) ? 1.0 : -1.0;
+        line.push_back({ x, y, z, k });
+    }
+
+    return line;
+}
 
 // Основная функция для генерации всех магнитных линий
 void generateMagneticFieldLines(
@@ -118,7 +180,6 @@ void generateMagneticFieldLines(
             double theta = THETA[i][j];
             double phi = PHI[i][j];
             double Br = Br_2d[i][j];
-
 
             auto line = traceFieldLine(R0, theta, phi, B_lm, R0, Rss, l_max, dr, max_steps);
 
@@ -205,7 +266,67 @@ void generate_Coronal_hole(
     file.close();
 }
 
+// Новая оптимизированная функция для корональных дыр с предвычисленной сеткой
+void generate_Coronal_hole_optimized(
+    const std::vector<std::vector<double>>& PHI,
+    const std::vector<std::vector<double>>& THETA,
+    const std::vector<std::vector<double>>& Br_2d,
+    const MagneticFieldGrid& grid,
+    const std::string& filename)
+{
+    std::ofstream file(filename);
+    file << "VARIABLES = phi, the, I" << std::endl;
 
+    double dr = 0.005 * grid.getR0(); // Шаг трассировки
+    int max_steps = 10000;  // Максимальное количество шагов
+
+    std::cout << "Starting optimized coronal hole generation..." << std::endl;
+    std::cout << "Processing " << PHI.size() << " x " << PHI[0].size() << " = " 
+              << (PHI.size() * PHI[0].size()) << " points" << std::endl;
+
+    int total_points = PHI.size() * PHI[0].size();
+    int processed_points = 0;
+    int progress_step = total_points / 20; // Показываем прогресс каждые 5%
+
+    // Выбираем стартовые точки на фотосфере
+    for (int i = 0; i < PHI.size(); i += 1)
+    {
+        for (int j = 0; j < PHI[0].size(); j += 1)
+        {
+            double theta = THETA[i][j];
+            double phi = PHI[i][j];
+            double Br = Br_2d[i][j];
+
+            // Используем новую оптимизированную функцию трассировки
+            auto line = traceFieldLineWithGrid(grid.getR0(), theta, phi, grid, dr, max_steps);
+
+            double x1, y1, z1;
+            x1 = line[line.size() - 1][0];
+            y1 = line[line.size() - 1][1];
+            z1 = line[line.size() - 1][2];
+
+            double r = sqrt(x1 * x1 + y1 * y1 + z1 * z1);
+
+            if (r > grid.getRss() * 0.99)
+            {
+                file << phi << " " << theta << " " << 1.0 << endl;
+            }
+            else
+            {
+                file << phi << " " << theta << " " << 0.0 << endl;
+            }
+
+            processed_points++;
+            if (progress_step > 0 && processed_points % progress_step == 0) {
+                int progress = (100 * processed_points) / total_points;
+                std::cout << "Tracing progress: " << progress << "%" << std::endl;
+            }
+        }
+    }
+
+    file.close();
+    std::cout << "Optimized coronal hole generation completed!" << std::endl;
+}
 
 void generateSphere(double radius, int numTheta, int numPhi,
     std::vector<Point3D>& vertices,
