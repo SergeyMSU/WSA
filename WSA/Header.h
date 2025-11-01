@@ -18,17 +18,10 @@ struct Point3D {
     double x, y, z;
 };
 
-
 #define M_PI 3.14159265
 
 class PFSSData;
 
 #include "PFSS_Data.h"
 #include "Trasser.h"
-
-
-void computeMagneticField(
-    double r, double theta, double phi,
-    const std::vector<std::vector<Complex>>& a_lm,
-    double R0, double Rss, int l_max,
-    double& Br, double& Btheta, double& Bphi);
+#include "SphericalHarmonics.h"

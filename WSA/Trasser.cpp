@@ -35,7 +35,7 @@ std::vector<std::vector<double>> traceFieldLine(
     sphericalToCartesian(r, theta, phi, x, y, z);
     double Br, Btheta, Bphi;
     double polar = 0.0;
-    computeMagneticField(r, theta, phi, B_lm, R0, Rss, l_max, Br, Btheta, Bphi);
+    SphericalHarmonics::computeMagneticField(r, theta, phi, B_lm, R0, Rss, l_max, Br, Btheta, Bphi);
     if (Br > 0)
     {
         polar = 1.0;
@@ -52,7 +52,7 @@ std::vector<std::vector<double>> traceFieldLine(
     for (int step = 0; step < max_steps; step++) 
     {
         // Вычисляем магнитное поле в текущей точке
-        computeMagneticField(r, theta, phi, B_lm, R0, Rss, l_max, Br, Btheta, Bphi);
+        SphericalHarmonics::computeMagneticField(r, theta, phi, B_lm, R0, Rss, l_max, Br, Btheta, Bphi);
 
         // Преобразуем компоненты поля в декартовы координаты
         double Bx = Br * sin(theta) * cos(phi) + Btheta * cos(theta) * cos(phi) - Bphi * sin(phi);
