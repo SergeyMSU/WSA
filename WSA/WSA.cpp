@@ -369,7 +369,7 @@ void writeComparisonToFile(
     const std::vector<std::vector<double>>& PHI,
     const std::vector<std::vector<double>>& THETA,
     const std::vector<std::vector<double>>& Br_orig,
-    const std::vector<std::vector<Complex>>& B_lm,
+    const std::vector<std::vector<Complex>>& B_lm, const double& RR,
     int step_lon = 1,
     int step_lat = 1, int l_max = 15) {
 
@@ -380,7 +380,7 @@ void writeComparisonToFile(
     }
 
     // Записываем заголовок
-    file << "TITLE = HP  VARIABLES = phi, the, Br_orig, Br_my, Br_num" << std::endl;
+    file << "TITLE = HP  VARIABLES = phi, the, Br_orig, Br_my, Br, Bthe, Brphi" << std::endl;
 
     // Записываем данные
     file << std::scientific << std::setprecision(10);
@@ -394,11 +394,11 @@ void writeComparisonToFile(
             double Br, Btheta, Bphi;
 
             //cout << "1  " << theta << " " << phi << endl;
-            computeMagneticField(1.0, theta, phi, B_lm, 1.0, 2.5, l_max, Br, Btheta, Bphi);
+            computeMagneticField(RR, theta, phi, B_lm, 1.0, 2.5, l_max, Br, Btheta, Bphi);
             //cout << "2   " << Br  << endl;
 
             file << phi << " " << theta << " "
-                << Br_original << " " << Br_reconstructed << " " << Br << std::endl;
+                << Br_original << " " << Br_reconstructed << " " << Br << " " << Btheta << " " << Bphi << std::endl;
         }
     }
 
@@ -465,7 +465,8 @@ int main() {
         }
 
         cout << "To file" << endl;
-        //writeComparisonToFile("comparison_10.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, 1, 1, l_max);
+        //writeComparisonToFile("1_comparison_50.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, 1.0, 1, 1, l_max);
+        //writeComparisonToFile("2.5_comparison_50.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, 2.5, 1, 1, l_max);
 
         // Вычисляем поле в конкретной точке
         /*double r = 1.0, theta = M_PI / 3, phi = M_PI / 8;
@@ -476,6 +477,7 @@ int main() {
         cout << reconstructBr(theta, phi, B_lm) << endl;*/
 
         generateMagneticFieldLines(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "magnetic_lines.txt");
+        generate_Coronal_hole(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "coronal_phole.txt");
 
 
         if (false)

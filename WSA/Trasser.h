@@ -19,6 +19,14 @@ void generateMagneticFieldLines(
     double R0, double Rss, int l_max,
     const std::string& filename);
 
+void generate_Coronal_hole(
+    const std::vector<std::vector<Complex>>& B_lm,
+    const std::vector<std::vector<double>>& PHI,
+    const std::vector<std::vector<double>>& THETA,
+    const std::vector<std::vector<double>>& Br_2d,
+    double R0, double Rss, int l_max,
+    const std::string& filename);
+
 void writeTecplotFile(const std::string& filename,
     const std::vector<Point3D>& vertices,
     const std::vector<std::vector<int>>& connectivity);

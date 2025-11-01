@@ -151,7 +151,58 @@ void generateMagneticFieldLines(
     }
 
     file.close();
+    file2.close();
     std::cout << "Generated " << line_count << " magnetic field lines in " << filename << std::endl;
+}
+
+
+void generate_Coronal_hole(
+    const std::vector<std::vector<Complex>>& B_lm,
+    const std::vector<std::vector<double>>& PHI,
+    const std::vector<std::vector<double>>& THETA,
+    const std::vector<std::vector<double>>& Br_2d,
+    double R0, double Rss, int l_max,
+    const std::string& filename)
+{
+
+    std::ofstream file(filename);
+    file << "VARIABLES = phi, the, I" << std::endl;
+
+    double dr = 0.005 * R0; // Шаг трассировки
+    int max_steps = 10000;  // Максимальное количество шагов
+
+    int line_count = 0;
+
+    // Выбираем стартовые точки на фотосфере (каждую 10-ю точку по сетке)
+    for (int i = 0; i < PHI.size(); i += 1)
+    {
+        for (int j = 0; j < PHI[0].size(); j += 1)
+        {
+            double theta = THETA[i][j];
+            double phi = PHI[i][j];
+            double Br = Br_2d[i][j];
+
+            auto line = traceFieldLine(R0, theta, phi, B_lm, R0, Rss, l_max, dr, max_steps);
+
+            double x1, y1, z1;
+            x1 = line[line.size() - 1][0];
+            y1 = line[line.size() - 1][1];
+            z1 = line[line.size() - 1][2];
+
+            double r = sqrt(x1 * x1 + y1 * y1 + z1 * z1);
+
+            if (r > Rss * 0.99)
+            {
+                file << phi << " " << theta << " " << 1.0 << endl;
+            }
+            else
+            {
+                file << phi << " " << theta << " " << 0.0 << endl;
+            }
+        }
+    }
+
+    file.close();
 }
 
 
