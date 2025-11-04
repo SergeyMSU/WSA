@@ -260,11 +260,17 @@ std::vector<std::vector<Complex>> SphericalHarmonics::computeSphericalHarmonics_
         B_lm[l].resize(2 * l + 1, 0.0);
     }
 
+
+    std::vector<std::mutex> mut(l_max + 1);
+
     double dphi = 2.0 * M_PI / n_lon;
     double dtheta = M_PI / (n_lat - 1);  // Исправлено: обычно n_lat включает полюса
 
-    for (int i = 0; i < n_lon; i++) {
-        for (int j = 0; j < n_lat; j++) {
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < n_lon; i++) 
+    {
+        for (int j = 0; j < n_lat; j++) 
+        {
             double phi = PHI[i][j];
             double theta = THETA[i][j];
             double sin_theta = sin(theta);
@@ -274,21 +280,29 @@ std::vector<std::vector<Complex>> SphericalHarmonics::computeSphericalHarmonics_
 
             double Br = Br_2d[i][j];
 
-            for (int l = 0; l <= l_max; l++) {
-                for (int m = 0; m <= l; m++) {
+            for (int l = 0; l <= l_max; l++) 
+            {
+                for (int m = 0; m <= l; m++) 
+                {
                     double legendre = gsl_sf_legendre_sphPlm(l, m, cos(theta));
                     Complex Y_lm = legendre * std::exp(Complex(0, m * phi));
 
                     // Умножаем на sin(theta) - элемент площади сферы
-                    B_lm[l][m + l] += Br * std::conj(Y_lm) * sin_theta * dphi * dtheta;
+                    Complex ddf = Br * std::conj(Y_lm) * sin_theta * dphi * dtheta;
+                    
+                    mut[l].lock();
+                    B_lm[l][m + l] += ddf;
+                    mut[l].unlock();
                 }
             }
         }
     }
 
     // Заполняем отрицательные m с правильной индексацией
-    for (int l = 0; l <= l_max; l++) {
-        for (int m = 1; m <= l; m++) {
+    for (int l = 0; l <= l_max; l++) 
+    {
+        for (int m = 1; m <= l; m++) 
+        {
             // Индекс для отрицательного m: l - m
             B_lm[l][l - m] = std::pow(-1.0, m) * std::conj(B_lm[l][l + m]);
         }
@@ -357,7 +371,8 @@ void SphericalHarmonics::writeComparisonToFile(
     const std::vector<std::vector<double>>& Br_orig,
     const std::vector<std::vector<Complex>>& B_lm, const double& RR,
     int step_lon,
-    int step_lat, int l_max) {
+    int step_lat, int l_max) 
+{
 
     std::ofstream file(filename);
     if (!file.is_open()) {
@@ -371,8 +386,11 @@ void SphericalHarmonics::writeComparisonToFile(
     // Записываем данные
     file << std::scientific << std::setprecision(10);
 
-    for (int i = 0; i < PHI.size(); i += step_lon) {
-        for (int j = 0; j < PHI[0].size(); j += step_lat) {
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < PHI.size(); i += step_lon) 
+    {
+        for (int j = 0; j < PHI[0].size(); j += step_lat) 
+        {
             double phi = PHI[i][j];
             double theta = THETA[i][j];
             double Br_original = Br_orig[i][j];
@@ -383,8 +401,87 @@ void SphericalHarmonics::writeComparisonToFile(
             computeMagneticField(RR, theta, phi, B_lm, 1.0, 2.5, l_max, Br, Btheta, Bphi);
             //cout << "2   " << Br  << endl;
 
-            file << phi << " " << theta << " "
-                << Br_original << " " << Br_reconstructed << " " << Br << " " << Btheta << " " << Bphi << std::endl;
+            #pragma omp critical (ergertgert43tet) 
+            {
+                file << phi << " " << theta << " "
+                    << Br_original << " " << Br_reconstructed << " " << Br << " " << Btheta << " " << Bphi << std::endl;
+            }
+        }
+    }
+
+    file.close();
+    std::cout << "Comparison data written to " << filename << std::endl;
+}
+
+void SphericalHarmonics::write_xz_ToFile(
+    const std::string& filename,
+    const std::vector<std::vector<double>>& PHI,
+    const std::vector<std::vector<double>>& THETA,
+    const std::vector<std::vector<double>>& Br_orig,
+    const std::vector<std::vector<Complex>>& B_lm, int l_max)
+{
+
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Cannot open file " << filename << std::endl;
+        return;
+    }
+
+    // Записываем заголовок
+    file << "TITLE = HP  VARIABLES = x, z, Bx, Bz" << std::endl;
+
+    // Записываем данные
+    file << std::scientific << std::setprecision(10);
+
+    int Nphi = 360.0;
+    int NR = 150.0;
+
+    double PHI_ = 0.0;
+
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < Nphi; i += 1)
+    {
+        for (int j = 0; j < NR; j += 1)
+        {
+            double R = 1.0 + (2.5 - 1.0) * j / (NR - 1);
+            double theta = i * M_PI / (Nphi - 1);
+            double Br, Btheta, Bphi;
+
+            computeMagneticField(R, theta, PHI_, B_lm, 1.0, 2.5, l_max, Br, Btheta, Bphi);
+
+            double x, y, z;
+            double Bx, By, Bz;
+            sphericalToCartesian(R, theta, PHI_, x, y, z);
+            dekard_skorost(z, x, y, Br, Bphi, Btheta, Bz, Bx, By);
+
+#pragma omp critical (ergertgert43tet) 
+            {
+                file << x << " " << z << " " << Bx << " " << Bz  << std::endl;
+            }
+        }
+    }
+
+
+#pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < Nphi; i += 1)
+    {
+        for (int j = 0; j < NR; j += 1)
+        {
+            double R = 1.0 + (2.5 - 1.0) * j / (NR - 1);
+            double theta = i * M_PI / (Nphi - 1);
+            double Br, Btheta, Bphi;
+
+            computeMagneticField(R, theta, PHI_ + M_PI, B_lm, 1.0, 2.5, l_max, Br, Btheta, Bphi);
+
+            double x, y, z;
+            double Bx, By, Bz;
+            sphericalToCartesian(R, theta, PHI_ + M_PI, x, y, z);
+            dekard_skorost(z, x, y, Br, Bphi, Btheta, Bz, Bx, By);
+
+#pragma omp critical (ergertgert43tet) 
+            {
+                file << x << " " << z << " " << Bx << " " << Bz << std::endl;
+            }
         }
     }
 

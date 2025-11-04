@@ -7,6 +7,13 @@ class MagneticFieldGrid;
 
 void sphericalToCartesian(double r, double theta, double phi, double& x, double& y, double& z);
 void cartesianToSpherical(double x, double y, double z, double& r, double& theta, double& phi);
+void spherical_skorost(const double& z, const double& x, const double& y,
+    const double& Vz, const double& Vx, const double& Vy,
+    double& Vr, double& Vphi, double& Vtheta);
+double polar_angle(const double& x, const double& y);
+void dekard_skorost(const double& z, const double& x, const double& y,
+    const double& Vr, const double& Vphi, const double& Vtheta,
+    double& Vz, double& Vx, double& Vy);
 
 std::vector<std::vector<double>> traceFieldLine(
     double r_start, double theta_start, double phi_start,

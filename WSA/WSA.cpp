@@ -58,9 +58,11 @@ int main() {
             }
         }
 
-        cout << "To file" << endl;
+        cout << "To file 1" << endl;
         //SphericalHarmonics::writeComparisonToFile("1_comparison_50.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, 1.0, 1, 1, l_max);
         //SphericalHarmonics::writeComparisonToFile("2.5_comparison_50.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, 2.5, 1, 1, l_max);
+        SphericalHarmonics::write_xz_ToFile("2D_xz.txt", data.PHI_2d, data.THETA_2d, data.Br_2d, B_lm, l_max);
+        
 
         // Âû÷èñëÿåì ïîëå â êîíêğåòíîé òî÷êå
         /*double r = 1.0, theta = M_PI / 3, phi = M_PI / 8;
@@ -70,7 +72,8 @@ int main() {
         std::cout << "B = (" << Br << ", " << Btheta << ", " << Bphi << ")" << std::endl;
         cout << SphericalHarmonics::reconstructBr(theta, phi, B_lm) << endl;*/
 
-        //generateMagneticFieldLines(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "magnetic_lines.txt");
+        cout << "To file 2" << endl;
+        generateMagneticFieldLines(B_lm, data.PHI_2d, data.THETA_2d, data.Br_2d, 1.0, 2.5, l_max, "magnetic_lines.txt");
         
         // ÍÎÂÀß ÎÏÒÈÌÈÇÈĞÎÂÀÍÍÀß ÂÅĞÑÈß ñ ïğåäâû÷èñëåííîé ñåòêîé
         std::cout << "\nCreating optimized magnetic field grid..." << std::endl;
@@ -80,11 +83,11 @@ int main() {
         int ntheta_grid = data.THETA_2d[0].size();  // Áåğåì ğàçğåøåíèå ïî theta èç èñõîäíûõ äàííûõ
         int nphi_grid = data.PHI_2d.size();         // Áåğåì ğàçğåøåíèå ïî phi èç èñõîäíûõ äàííûõ
         
-        MagneticFieldGrid grid(1.0, 2.5, nr_grid, ntheta_grid, nphi_grid);
-        grid.initializeGrid(B_lm, l_max);
+        ////MagneticFieldGrid grid(1.0, 2.5, nr_grid, ntheta_grid, nphi_grid);
+        //grid.initializeGrid(B_lm, l_max);
         
-        std::cout << "Grid created successfully! Starting optimized coronal hole calculation..." << std::endl;
-        generate_Coronal_hole_optimized(data.PHI_2d, data.THETA_2d, data.Br_2d, grid, "coronal_phole_optimized.txt");
+        //std::cout << "Grid created successfully! Starting optimized coronal hole calculation..." << std::endl;
+        //generate_Coronal_hole_optimized(data.PHI_2d, data.THETA_2d, data.Br_2d, grid, "coronal_phole_optimized.txt");
 
         if (false)
         {

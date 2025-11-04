@@ -56,3 +56,23 @@ WSA/build_with_openmp.bat
 coronal_phole_optimized.txt
 
 coronal_phole.txt
+
+1_comparison_100.txt
+
+1_comparison_50.txt
+
+2D_xz.txt
+
+closed_magnetic_line-s.txt
+
+closed_magnetic_lines.txt
+
+coronal_phole_magnetic_lines_100.txt
+
+coronal_phole_magnetic_lines.txt
+
+coronal_pholemagnetic_lines.txt
+
+open_magnetic_lines-.txt
+
+open_magnetic_lines.txt

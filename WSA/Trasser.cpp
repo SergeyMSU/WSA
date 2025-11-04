@@ -8,6 +8,65 @@ void sphericalToCartesian(double r, double theta, double phi, double& x, double&
     z = r * cos(theta);
 }
 
+double polar_angle(const double& x, const double& y)
+{
+    if (fabs(x) + fabs(y) < 0.000001)
+    {
+        return 0.0;
+    }
+
+    if (x < 0)
+    {
+        return atan(y / x) + 1.0 * M_PI;
+    }
+    else if (x > 0 && y >= 0)
+    {
+        return atan(y / x);
+    }
+    else if (x > 0 && y < 0)
+    {
+        return atan(y / x) + 2.0 * M_PI;
+    }
+    else if (y > 0 && x >= 0 && x <= 0)
+    {
+        return M_PI / 2.0;
+    }
+    else if (y < 0 && x >= 0 && x <= 0)
+    {
+        return  3.0 * M_PI / 2.0;
+    }
+    return 0.0;
+}
+
+void dekard_skorost(const double& z, const double& x, const double& y,
+    const double& Vr, const double& Vphi, const double& Vtheta,
+    double& Vz, double& Vx, double& Vy)
+{
+    double r_2, the_2, phi_2;
+    r_2 = sqrt(x * x + y * y + z * z);
+    the_2 = acos(z / r_2);
+    phi_2 = polar_angle(x, y);
+
+    Vx = Vr * sin(the_2) * cos(phi_2) + Vtheta * cos(the_2) * cos(phi_2) - Vphi * sin(phi_2);
+    Vy = Vr * sin(the_2) * sin(phi_2) + Vtheta * cos(the_2) * sin(phi_2) + Vphi * cos(phi_2);
+    Vz = Vr * cos(the_2) - Vtheta * sin(the_2);
+}
+
+void spherical_skorost(const double& z, const double& x, const double& y,
+    const double& Vz, const double& Vx, const double& Vy,
+    double& Vr, double& Vphi, double& Vtheta)
+{
+    double r_1, the_1, phi_1;
+
+    r_1 = sqrt(x * x + y * y + z * z);
+    the_1 = acos(z / r_1);
+    phi_1 = polar_angle(x, y);
+
+    Vr = Vx * sin(the_1) * cos(phi_1) + Vy * sin(the_1) * sin(phi_1) + Vz * cos(the_1);
+    Vtheta = Vx * cos(the_1) * cos(phi_1) + Vy * cos(the_1) * sin(phi_1) - Vz * sin(the_1);
+    Vphi = -Vx * sin(phi_1) + Vy * cos(phi_1);
+}
+
 void cartesianToSpherical(double x, double y, double z, double& r, double& theta, double& phi) 
 {
     r = sqrt(x * x + y * y + z * z);
@@ -167,15 +226,28 @@ void generateMagneticFieldLines(
     file << "VARIABLES = X, Y, Z, I" << std::endl;
     file2 << "VARIABLES = X, Y, Z, I" << std::endl;
 
-    double dr = 0.005 * R0; // Шаг трассировки
-    int max_steps = 10000;  // Максимальное количество шагов
+    std::ofstream file3("coronal_phole_" + filename);
+    file3 << "VARIABLES = phi, the, I" << std::endl;
+
+    double dr = 0.005 * R0; // Шаг трассировки  0.005
+    int max_steps = 100000;  // Максимальное количество шагов
 
     int line_count = 0;
-
+    int ik = 0;
+    short int step_i = 1;
     // Выбираем стартовые точки на фотосфере (каждую 10-ю точку по сетке)
-    for (int i = 0; i < PHI.size(); i += 10) 
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < PHI.size(); i += step_i)
     {
-        for (int j = 0; j < PHI[0].size(); j += 10) 
+        #pragma omp critical (ergertet4) 
+        {
+            ik++;
+            if (ik % 10 == 0)
+            {
+                cout << "Step " << ik << "    from  " << PHI.size() / step_i << endl;
+            }
+        }
+        for (int j = 0; j < PHI[0].size(); j += 1) 
         {
             double theta = THETA[i][j];
             double phi = PHI[i][j];
@@ -193,19 +265,29 @@ void generateMagneticFieldLines(
             if (r > Rss * 0.99)
             {
                 // Записываем линию в файл
-                file << "ZONE T=\"Line" << line_count++ << "\" I=" << line.size() << " F=POINT" << std::endl;
-                for (const auto& point : line)
+                #pragma omp critical (ge) 
                 {
-                    file << point[0] << " " << point[1] << " " << point[2] << " " << point[3] << std::endl;
+                    file << "ZONE T=\"Line" << line_count++ << "\" I=" << line.size() << " F=POINT" << std::endl;
+                    for (const auto& point : line)
+                    {
+                        file << point[0] << " " << point[1] << " " << point[2] << " " << point[3] << std::endl;
+                    }
+
+                    file3 << phi << " " << theta << " " << 1.0 << endl;
                 }
             }
             else
             {
                 // Записываем линию в файл
-                file2 << "ZONE T=\"Line" << line_count++ << "\" I=" << line.size() << " F=POINT" << std::endl;
-                for (const auto& point : line)
+                #pragma omp critical (ge) 
                 {
-                    file2 << point[0] << " " << point[1] << " " << point[2] << " " << point[3] << std::endl;
+                    file2 << "ZONE T=\"Line" << line_count++ << "\" I=" << line.size() << " F=POINT" << std::endl;
+                    for (const auto& point : line)
+                    {
+                        file2 << point[0] << " " << point[1] << " " << point[2] << " " << point[3] << std::endl;
+                    }
+
+                    file3 << phi << " " << theta << " " << 0.0 << endl;
                 }
             }
         }
@@ -213,6 +295,7 @@ void generateMagneticFieldLines(
 
     file.close();
     file2.close();
+    file3.close();
     std::cout << "Generated " << line_count << " magnetic field lines in " << filename << std::endl;
 }
 

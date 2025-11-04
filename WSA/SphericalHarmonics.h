@@ -58,4 +58,13 @@ public:
         int step_lon = 1,
         int step_lat = 1,
         int l_max = 15);
+
+    static void write_xz_ToFile(const std::string& filename,
+        const std::vector<std::vector<double>>& PHI, 
+        const std::vector<std::vector<double>>& THETA, 
+        const std::vector<std::vector<double>>& Br_orig, 
+        const std::vector<std::vector<Complex>>& B_lm,
+        int l_max);
+    // Не особо полезная функция, так как 2Д срез плохо показывает магнитные линии
+
 };

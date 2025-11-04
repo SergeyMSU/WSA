@@ -10,19 +10,15 @@
 #include <gsl/gsl_sf_legendre.h>
 #include <gsl/gsl_sf_bessel.h>
 #include <complex>
-
-#ifdef _OPENMP
 #include <omp.h>
-#endif
+#include <chrono>
+#include <thread>
+#include <mutex>
 
-using namespace std;
-using Complex = std::complex<double>;
-
-struct Point3D {
+struct Point3D
+{
     double x, y, z;
 };
-
-#define M_PI 3.14159265
 
 // ‘орвардные декларации всех классов и структур
 class PFSSData;
@@ -30,6 +26,16 @@ class SphericalHarmonics;
 class MagneticFieldGrid;
 struct SphericalHarmonicData;
 struct MagneticFieldPoint;
+
+
+
+using Complex = std::complex<double>;
+
+
+//#define M_PI 3.14159265
+
+
+using namespace std;
 
 #include "PFSS_Data.h"
 #include "Trasser.h"
